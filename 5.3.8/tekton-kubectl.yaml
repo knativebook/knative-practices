@@ -1,0 +1,46 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tekton-sa-role
+rules:
+- apiGroups:
+  - serving.knative.dev   # 指定Knative API组中的serving.knative.dev
+  - apps                  # 指定Kubernetes API组中的apps
+  resources:
+  - services              # 定义可以使用serving.knative.dev组下的哪些资源
+  - deployments           # 定义可以使用apps组下的哪些资源
+  verbs:
+  - '*'
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tekton-sa-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-sa-role            # 指定ClusterRoleName
+subjects:
+- kind: ServiceAccount
+  name: docker-git-sa             # 指定ServiceAccountName
+  namespace: default
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deployment-task
+spec:
+  resources:
+    inputs:
+      - name: git-source
+        type: git
+  steps:  
+    - name: run-kubectl
+      image: lachlanevenson/k8s-kubectl:v1.17.12
+      command: ['kubectl']
+      args:
+        - "apply"
+        - "-f"
+        - "$(resources.inputs.git-source.path)/app.yaml"

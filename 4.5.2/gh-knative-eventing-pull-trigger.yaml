@@ -1,0 +1,16 @@
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Trigger
+metadata:
+  name: gh-knative-eventing-pull-trigger
+  namespace: default
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.source.github.pull_request
+      source: https://github.com/knative/eventing
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: gh-knative-eventing-pull-service

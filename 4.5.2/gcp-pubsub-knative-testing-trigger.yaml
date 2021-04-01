@@ -1,0 +1,15 @@
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Trigger
+metadata:
+  name: gcp-pubsub-knative-testing-trigger
+  namespace: default
+spec:
+  broker: dev
+  filter:
+    attributes:
+      source: //pubsub.googleapis.com/knative/topics/testing
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: gcp-pubsub-knative-testing-service

@@ -1,0 +1,16 @@
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Trigger
+metadata:
+  name: kafka-knative-demo-trigger
+  namespace: default
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.kafka.event
+      source: /apis/v1/namespaces/default/kafkasources/kafka-sample#knative-demo
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: kafka-knative-demo-service

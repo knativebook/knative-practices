@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: hello-git
+spec:
+  type: git
+  params:
+    - name: url
+      value: http://git.xxxx.com/cnlab/hello.git
+    - name: revision
+      value: master
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: hello-image
+spec:
+  type: image
+  params:
+    - name: url
+      value: hello-code/hello:v1.0
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-resources
+spec:
+  resources:
+    inputs:
+      - name: git-source
+        resourceRef:                # 直接引用PipelineResource资源对象
+          name: hello-git
+    outputs:
+      - name: builtImage
+        resourceRef:                # 直接引用PipelineResource资源对象
+          name: hello-image

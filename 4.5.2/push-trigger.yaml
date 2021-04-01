@@ -1,0 +1,15 @@
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Trigger
+metadata:
+  name: push-trigger
+  namespace: default
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.source.github.push
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: push-service

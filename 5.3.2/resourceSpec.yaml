@@ -1,0 +1,25 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-hello
+spec:
+  resources:
+    inputs:
+      - name: git-source
+        resourceSpec:
+          type: git
+          params:
+            - name: url
+              value: http://git.xxxx.com/cnlab/hello.git
+            - name: revision
+              value: master
+    outputs:
+      - name: builtImage
+        resourceSpec:
+          type: image
+          params:
+            - name: url
+              value: hello-code/hello:v1.0
+  taskRef:
+    name: task-hello
+    kind: Task

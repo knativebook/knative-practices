@@ -1,0 +1,91 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sum
+spec:
+  params:
+    - name: a
+    - name: b
+  results:
+    - name: sum
+  steps:
+    - name: sum
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo -n $(( "$(params.a)" + "$(params.b)" )) | tee $(results.sum.path)
+        
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: multiply
+spec:
+  params:
+    - name: a
+    - name: b
+  results:
+    - name: product
+  steps:
+    - name: product
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo -n $(( "$(params.a)" * "$(params.b)" )) | tee $(results.product.path)
+        
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: sum-and-multiply-pipeline
+spec:
+  params:
+    - name: a
+    - name: b
+  tasks:
+    - name: task-1
+      taskRef:
+        name: sum
+      params:
+        - name: a
+          value: "$(params.a)"
+        - name: b
+          value: "$(params.b)"
+    - name: task-2
+      taskRef:
+        name: multiply
+      params:
+        - name: a
+          value: "$(params.a)"
+        - name: b
+          value: "$(params.b)"
+    - name: task-3
+      taskRef:
+        name: sum
+      params:
+        - name: a
+          value: "$(tasks.task-2.results.product)$(tasks.task-1.results.sum)"
+        - name: b
+          value: "$(tasks.task-2.results.product)$(tasks.task-1.results.sum)"
+  results:                           # 通过变量引用各Task的结果为Pipeline配置执行结果。
+    - name: task-1-results
+      value: $(tasks.task-1.results.sum)
+    - name: task-2-results
+      value: $(tasks.task-2.results.product)   
+    - name: all-sum
+      description: The sum of task-1 and task-2
+      value: $(tasks.task-1.results.sum)+$(tasks.task-2.results.product)         
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: sum-and-multiply-pipeline-run
+spec:
+  pipelineRef:
+    name: sum-and-multiply-pipeline
+  params:
+    - name: a
+      value: "2"
+    - name: b
+      value: "10"

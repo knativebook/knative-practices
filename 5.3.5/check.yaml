@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1alpha1             # 当前Condition的版本为Alpha
+kind: Condition                             # 声明Condition资源对象
+metadata:
+  name: file-exists
+spec:
+  params:
+    - name: path
+    - name: image
+      default: alpine
+  resources:
+    - name: workspace
+      type: git
+  check:
+    name: checking                         # 定义Step的名称（可选）  
+    image: $(params.image)
+    script: 'test -f $(resources.workspace.path)/$(params.path)'    # 支持多种语言（shell/python/perl等）编写条件检查脚本。
+  description: Check if the file exists.   # 添加描述信息（可选）
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: conditional-pipeline
+spec:
+  resources:
+    - name: source-repo
+      type: git
+  params:
+    - name: path
+      default: README.md
+  tasks:
+    - name: then-check
+      conditions:
+        - conditionRef: file-exists      # 引用已存在的condition对象
+          params:                        # 向condition对象中传递参数
+            - name: path
+              value: $(params.path)
+          resources:                     # 向condition对象中传递Resource
+            - name: workspace
+              resource: source-repo 

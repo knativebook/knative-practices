@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: LimitRange      # 在此命名空间设置LimitRange对象，将限制容器的资源使用率
+metadata:
+  name: limit-mem-cpu-per-container
+  namespace: default
+spec:
+  limits:
+  - max:
+      cpu: "800m"
+      memory: "1Gi"
+    min:
+      cpu: "100m"
+      memory: "99Mi"
+    default:
+      cpu: "700m"
+      memory: "900Mi"
+    defaultRequest:
+      cpu: "110m"
+      memory: "111Mi"
+    type: Container    # 指定类型为Container
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: echo-hello-world
+  namespace: default
+spec:
+  steps:
+    - name: echo
+      image: bash:latest
+      command:
+        - echo
+      args:
+        - "hello world"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-hello
+  namespace: default
+spec:
+  tasks:
+  - name: hello-world-1
+    taskRef:
+      name: echo-hello-world
+  - name: hello-world-2
+    taskRef:
+      name: echo-hello-world
+    runAfter:
+      - hello-world-1
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipeline-hello-run
+  namespace: default
+spec:
+  pipelineRef:
+    name: pipeline-hello

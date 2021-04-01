@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: stepTemplate
+spec:
+  stepTemplate:
+    env:
+      - name: "FOO"
+        value: "bar"
+  steps:
+    - name: test-a
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo "FOO is ${FOO}"
+    - name: test-b
+      image: bash:latest
+      env:
+        - name: "FOO"
+          value: "baz"
+      script: |
+        #!/usr/bin/env bash
+        echo "FOO is ${FOO}"

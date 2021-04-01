@@ -1,0 +1,13 @@
+apiVersion: sources.knative.dev/v1alpha2
+kind: PingSource
+metadata:
+  name: test-ping-source
+spec:
+  schedule: "*/1 * * * *"
+  jsonData: '{"message": "Hello world!"}'
+  sink:
+    ref:
+      # Deliver events to Broker.
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: default

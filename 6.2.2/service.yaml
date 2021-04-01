@@ -1,0 +1,21 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld-go  # Service名称
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: helloworld-go-v2 # Knative Revision名称
+    spec:
+      containers:
+      - image: cnlab/helloworld-go
+        env:
+        - name: TARGET
+          value: "Go Sample v2"
+        livenessProbe:
+          httpGet:
+            path: /
+        readinessProbe:
+          httpGet:
+            path: /

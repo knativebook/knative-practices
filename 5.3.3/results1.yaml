@@ -1,0 +1,85 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sum
+spec:
+  params:
+    - name: a
+    - name: b
+  results:
+    - name: sum
+  steps:
+    - name: sum
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        # 参数a与参数b做加法，然后把结果数值存放到"$(results.sum.path)"路径中备用
+        echo -n $(( "$(params.a)" + "$(params.b)" )) | tee $(results.sum.path)
+        
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: multiply
+spec:
+  params:
+    - name: a
+    - name: b
+  results:
+    - name: product
+  steps:
+    - name: product
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        # 参数a与参数b做乘法，然后把结果数值存放到"$(results.product.path)"路径中备用
+        echo -n $(( "$(params.a)" * "$(params.b)" )) | tee $(results.product.path)
+        
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: sum-and-multiply-pipeline
+spec:
+  params:                         # 定义Pipeline级别参数，通过PipelineRun传入
+    - name: a
+    - name: b
+  tasks:
+    - name: task-1
+      taskRef:
+        name: sum
+      params:                     # 引用参数值，用于加法计算
+        - name: a
+          value: "$(params.a)"
+        - name: b
+          value: "$(params.b)"
+    - name: task-2
+      taskRef:
+        name: multiply
+      params:                     # 引用参数值，用于乘法计算
+        - name: a
+          value: "$(params.a)"
+        - name: b
+          value: "$(params.b)"
+    - name: task-3
+      taskRef:
+        name: sum
+      params:                     # 将任务task-1和task-2的结果通过变量替换传递到任务task-3的参数中。 
+        - name: a
+          value: "$(tasks.task-2.results.product)$(tasks.task-1.results.sum)"
+        - name: b
+          value: "$(tasks.task-2.results.product)$(tasks.task-1.results.sum)"
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: sum-and-multiply-pipeline-run
+spec:
+  pipelineRef:
+    name: sum-and-multiply-pipeline
+  params:              # 向Pipeline对象中传递参数数值
+    - name: a
+      value: "2"
+    - name: b
+      value: "10"

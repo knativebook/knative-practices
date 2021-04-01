@@ -1,0 +1,7 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipeline-run-example
+spec:
+  pipelineRef:                      # 引用已存在的Pipeline对象
+    name: pipeline-example

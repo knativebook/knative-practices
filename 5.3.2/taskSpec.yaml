@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-hello
+spec:
+  serviceAccountName: docker-git-sa
+  resources:              # 把输入输出资源传递到taskSpec中
+    inputs:
+      - name: git-source
+        resourceSpec:
+          type: git
+          params:
+            - name: url
+              value: http://git.xxxx.com/cnlab/dart-hello.git
+            - name: revision
+              value: master
+    outputs:
+      - name: builtImage
+        resourceSpec:
+          type: image
+          params:
+            - name: url
+              value: dart-hello:v1.0-test
+  taskSpec:                # 嵌套Task资源配置           
+    resources:
+      inputs:
+        - name: git-source
+          type: git
+      outputs:
+        - name: builtImage
+          type: image
+    steps:
+      - name: build-and-push
+        image: gcr.io/kaniko-project/executor:debug-v0.24.0
+        env:
+          - name: "DOCKER_CONFIG"
+            value: "/tekton/home/.docker/"
+        command:
+          - /kaniko/executor
+        args:
+          - --dockerfile=$(resources.inputs.git-source.path)/Dockerfile
+          - --destination=$(resources.outputs.builtImage.url)
+          - --context=$(resources.inputs.git-source.path)
+          - --log-timestamp

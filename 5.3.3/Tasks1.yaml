@@ -1,0 +1,10 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+spec:
+  tasks:
+    - name: build-to-push          # 自定义一个有效的任务名称
+      taskRef:
+        name: build-and-push       # 引用一个已存在Task资源（此名称非自定义，而是一个已存在的Task对象名称）
+        kind: Task                 # 此Task资源的作用域

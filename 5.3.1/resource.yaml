@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: resource-task
+spec:
+  resources:
+    inputs:
+      - name: git-source
+        type: git
+    outputs:
+      - name: app-image
+        type: image
+  steps:
+    - name: print
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo $(resources.inputs.git-source.path)  # 代码存放路径
+        echo $(resources.outputs.app-image.url)   # 镜像url

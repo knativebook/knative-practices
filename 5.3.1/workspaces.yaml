@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: PersistentVolumeClaim      # 在Kubernetes集群上创建PVC资源
+metadata:
+  name: pvc-km
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "2Gi"
+      
+---
+apiVersion: v1
+kind: ConfigMap                  # 在Kubernetes集群上创建ConfigMap资源
+metadata:
+  name: cm-km 
+data:
+  config: "Hello ConfigMap!\n"
+
+---
+apiVersion: v1
+kind: Secret                     # 在Kubernetes集群上创建Secret资源
+metadata:
+  name: secret-km
+type: Opaque
+stringData:
+  username: user
+data:
+  server-cert.pem: SGVsbG8gU2VjcmV0IQo=
+  
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-workspaces
+spec:
+  workspaces:
+    - name: emptyDirName
+    - name: pvcName
+      mountPath: /km/pvc
+    - name: configmapName
+      mountPath: /km/configmap
+    - name: secretName
+      mountPath: /km/secret  # 将资源挂载到/km/secret（路径不存在时，自动创建）
+  steps:
+    - name: print
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo "Hello emptyDir!" >> $(workspaces.emptyDirName.path)/emptyDir.txt
+        echo "Hello PersistentVolumeClaim!" >> $(workspaces.pvcName.path)/pvc.txt
+        cat $(workspaces.emptyDirName.path)/emptyDir.txt
+        cat $(workspaces.pvcName.path)/pvc.txt
+        cat $(workspaces.configmapName.path)/config
+        cat $(workspaces.secretName.path)/server-cert.pem
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-storage
+spec:
+  serviceAccountName: docker-git-sa
+  workspaces:
+    - name: emptyDirName
+      emptyDir: {}
+    - name: pvcName           # 此名称必须与Task中相应的Workspace名称相同
+      persistentVolumeClaim:
+        claimName: pvc-km     # 引用Kubernetes集群上的PVC（必须提前存在）
+    - name: configmapName
+      configmap:
+        name: cm-km           # 引用Kubernetes集群上的ConfigMap（必须提前存在）
+    - name: secretName
+      secret:
+        secretName: secret-km # 引用Kubernetes集群上的Secret（必须提前存在）
+  taskRef:
+    name: task-workspaces
+    kind: Task

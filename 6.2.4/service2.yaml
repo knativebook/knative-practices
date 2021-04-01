@@ -1,0 +1,31 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld-go  # Service名称
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: helloworld-go-v2 # Knative Revision名称
+    spec:
+      containers:
+      - image: cnlab/helloworld-go
+        env:
+        - name: TARGET
+          value: "Go Sample v2"
+        livenessProbe:
+          httpGet:
+            path: /
+        readinessProbe:
+          httpGet:
+            path: /
+  traffic:
+  - tag: v1  
+    revisionName: helloworld-go-v1  # Revision的名称
+    percent: 80  #流量切分的百分比的数字值。
+  - tag: v2
+    revisionName: helloworld-go-v2  # Revision的名称
+    percent: 20  #流量切分的百分比的数字值。
+  - tag: latest   #默认最新的revision。
+    latestRevision: true
+    percent: 0   #关闭默认流量分配。

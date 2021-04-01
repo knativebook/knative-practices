@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-pod-template
+spec:
+  steps:
+    - name: ls
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        date -R
+      volumeMounts:
+        - name: localtime
+          mountPath: /etc/localtime
+
+---          
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-pod-template
+spec:
+  serviceAccountName: docker-git-sa
+  taskRef:
+    name: task-pod-template
+    kind: Task
+  # 配置Pod模版
+  podTemplate: 
+    nodeSelector:
+      # 让Task资源中所有Pod运行在匹配标签的节点上
+      kubernetes.io/hostname: k8s-tekton   
+    volumes:
+      # 指定Task资源中所有Pod的启动默认配置（volume配置还需要在Task资源中引用）
+      - name: localtime
+        hostPath:
+          path: /usr/share/zoneinfo/Asia/Shanghai

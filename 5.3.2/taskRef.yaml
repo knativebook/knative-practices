@@ -1,0 +1,8 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-hello
+spec:
+  taskRef:
+    name: task-hello         # 引用已存在的Task资源对象
+    kind: ClusterTask        # 指定作用域。默认是Task，只能被同命名空间中的TaskRun引用。ClusterTask可被集群内的TaskRun引用。

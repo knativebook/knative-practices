@@ -1,0 +1,9 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-hello
+spec: 
+  taskRef:
+    name: task-hello
+    kind: Task
+  timeout: 0h10m0s     # 设置故障超时时间为10分钟

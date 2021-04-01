@@ -1,0 +1,71 @@
+apiVersion: tekton.dev/v1alpha1  # 当前Condition的版本为Alpha
+kind: Condition                  # 声明Condition资源对象 
+metadata:
+  name: condition-test
+spec:
+  resources:
+    - name: pipeline-git
+      type: git
+  check:                         # 表示开始声明一个Step。此Step中可包含条件判断检查的逻辑。
+    name: hello
+    image: bash:latest
+    command:
+      - bash
+    args:
+      - -c
+      - |
+        # 可以在此处添加条件检查的判断逻辑，退出码为非0时代表条件检查失败。
+        echo "Hello from Tekton Pipeline!"
+        
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-to-list-files
+spec:
+  resources:
+    - name: pipeline-git
+      type: git
+  tasks:
+    - name: conditional-list-files
+      taskRef:
+        name: task-to-list-files
+      resources:
+        inputs:
+          - name: pipeline-git
+            resource: pipeline-git    
+      conditions:
+        - conditionRef: condition-test    # 引用已存在的Condition对象
+          resources:                      # 向condition对象中传递Resource
+            - name: pipeline-git
+              resource: pipeline-git
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: from-pipeline
+spec:
+  resources:
+    - name: builtImage                # 定义Pipeline所需的资源（通过执行PipelineRun传递PipelineResource给Pipeline）。
+      type: image
+  tasks:
+    - name: build-to-push
+      taskRef:
+        name: task-build-to-push      
+        kind: Task
+      resources:
+        outputs:                     # 定义输出资源
+          - name: app-image-a        # 必须与Task资源中定义的输出资源名称相同
+            resource: builtImage     # 引用Pipeline中的spec.resources
+    - name: deploy
+      taskRef:
+        name: task-deploy
+        kind: Task
+      conditions:
+        - conditionRef: condition-test
+          resources:
+            - name: app-image-b        # 必须与Task资源中定义的输出资源名称相同
+              resource: builtImage     # 引用Pipeline中的spec.resources（此Task中的输入资源必须与build-to-push中的输出资源名称相同）             
+              from:
+               - build-to-push         # 排序控制，表示只有build-to-push任务成功执行完成后deploy任务才会执行（Condition永远在此Task前运行）。 

@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-volume
+spec:
+  params:
+      # 通过参数指定Kubernetes集群上PVC资源名称（给spec.volumes字段引用） 
+    - name: mavenPVC
+      type: string
+      default: maven-pvc 
+      # 通过参数指定Kubernetes集群上configMap资源名称（给spec.volumes字段引用） 
+    - name: configMapName
+      type: string
+      default: app-config
+      # 通过参数指定此Tasks中volume名称（给spec.volumes字段引用）
+    - name: volumeName
+      type: string
+      default: appconfig
+  resources:
+    outputs:
+    - name: builtImage
+      type: image    
+  steps:
+    - name: volumes-example
+      image: docker:git
+      command: ['docker']
+      args:
+        - push
+        - $(resources.outputs.builtImage.url)
+      volumeMounts:
+        - name: shareData
+          mountPath: /shareData
+        - name: localtime
+          mountPath: /etc/localtime
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+        - name: maven-storage
+          mountPath: /root/.m2
+        - name: "$(params.volumeName)"
+          mountPath: /app/config
+  volumes:
+    - name: shareData
+      emptyDir: {}  
+    - name: localtime
+      hostPath:
+        path: /usr/share/zoneinfo/Asia/Shanghai
+    - name: docker-socket
+      hostPath:
+        path: /var/run/docker.sock
+        type: Socket
+    - name: maven-storage
+      persistentVolumeClaim:
+        claimName: "$(params.mavenPVC)"
+    - name: "$(params.volumeName)"
+      configMap:
+        name: "$(params.configMapName)"
+        items:
+          - key: config
+            path: config

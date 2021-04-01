@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-km1
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-storage
+spec:
+  steps:
+    - name: storage
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo "Hello Tekton!" > /file-data/file.txt
+        cat /file-data/file.txt
+      volumeMounts:
+        - name: file
+          mountPath: /file-data
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-storage
+spec:
+  tasks:
+    - name: filestorage
+      taskRef:
+        name: task-storage
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipelinerun-storage
+spec:
+  pipelineRef: 
+    name: pipeline-storage
+  podTemplate:             # 为Pipeline中的各Task，设置运行时Pod的初始配置
+    securityContext:
+      runAsGroup: 0
+      runAsNonRoot: false
+      runAsUser: 0
+    volumes:
+      - name: file
+        persistentVolumeClaim:
+          claimName: pvc-km1

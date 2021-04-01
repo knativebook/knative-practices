@@ -1,0 +1,48 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-and-push
+spec:
+  resources:
+    inputs:                  # 在Task中定义的输入资源
+      - name: git-source
+        type: git
+    outputs:                 # 在Task中定义的输出资源 
+      - name: builtImage
+        type: image
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:debug-v0.24.0
+      env:
+        - name: "DOCKER_CONFIG"
+          value: "/tekton/home/.docker/"
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.git-source.path)/DockerFile
+        - --destination=$(resources.outputs.builtImage.url)
+        - --context=$(resources.inputs.git-source.path)
+        
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+spec:
+  resources:
+    - name: git-source-p             # 定义Pipeline所需的Git类型资源
+      type: git
+    - name: builtImage-p             # 定义Pipeline所需的Image类型资源
+      type: image
+  tasks:
+    - name: build-to-push
+      resources:
+        inputs:
+          - name: git-source         # 必须与Task资源中定义的输入资源名称相同
+            resource: git-source-p   # 引用spec.resources中相应的资源名称
+        outputs:
+          - name: builtImage         # 必须与Task资源中定义的输出资源名称相同
+            resource: builtImage-p   # 引用spec.resources中相应的资源名称
+      taskRef:
+        name: build-and-push
+        kind: Task

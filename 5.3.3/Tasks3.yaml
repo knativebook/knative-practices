@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+spec:
+  params:
+    - name: pathToContext                  # 定义Pipeline所需的params（通过执行PipelineRun传递params给Pipeline）。
+      type: string
+  tasks:
+    - name: build-to-push
+      params:
+        - name: pathToContext
+          value: $(params.pathToContext)   # 通过变量替换，引用params.pathToContext。   
+      taskRef:
+        name: build-and-push
+        kind: Task

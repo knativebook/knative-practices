@@ -1,0 +1,11 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+spec:
+  tasks:
+    - name: hello  
+      taskRef:
+        name: hello-task
+        kind: Task
+      timeout: 0h10m0s        # 设置故障超时时间

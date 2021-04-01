@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: hello-resource
+spec:
+  type: image  
+  params:
+  - name: url
+    value: example/hello:latest
+  
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipeline-run-example
+spec:
+  pipelineRef:
+    name: pipeline-example
+  resources:                  # 指定Pipeline所需要的PipelineResource
+    - name: builtImage        # 此名称必须与Pipeline对象中定义的Resource名称相同
+      resourceRef:            # 引用已存在的PipelineResource
+        name: hello-resource

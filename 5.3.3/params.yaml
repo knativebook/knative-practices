@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: deploy-pipeline
+spec:
+  params:
+    - name: pathToContext                 # 定义Pipeline所需的params（通过执行PipelineRun传递params给Pipeline）
+      type: string
+      description: Path to Context        # 添加描述信息（可选）
+      default: /workspace/deploy          # 添加默认值（可选）
+  tasks:
+    - name: deploy
+      taskRef:
+        name: deploy-task
+      params:
+        - name: pathToDeployment
+          value: $(params.pathToContext)/ksvc.yaml    
+          # 通过变量替换，引用params.pathToContext
+          
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: deploy-pipelinerun
+spec:
+  pipelineRef:
+    name: deploy-pipeline
+  params:
+    - name: pathToContext                # 此名称必须与Pipeline资源中定义的params名称相同，Pipeline中必须声明此名称            
+      value: /workspace/dart-hello

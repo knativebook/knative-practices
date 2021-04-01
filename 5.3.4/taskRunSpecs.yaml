@@ -1,0 +1,96 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-and-push
+spec:
+  resources:
+    inputs:
+      - name: git-source
+        type: git
+    outputs:
+      - name: builtImage
+        type: image
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:debug-v0.24.0
+      env:
+        - name: "DOCKER_CONFIG"
+          value: "/tekton/home/.docker/"
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.git-source.path)/DockerFile
+        - --destination=$(resources.outputs.builtImage.url)
+        - --context=$(resources.inputs.git-source.path)
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-build-and-push
+spec:
+  resources:
+    - name: sapi-git
+      type: git
+    - name: sapi-image
+      type: image
+    - name: kapi-git
+      type: git
+    - name: kapi-image 
+      type: image
+  tasks:
+    - name: sapi
+      taskRef:
+        name: build-and-push
+      resources:
+        inputs:
+          - name: git-source
+            resource: sapi-git
+        outputs:
+          - name: builtImage
+            resource: sapi-image
+    - name: kapi
+      taskRef:
+        name: build-and-push
+      resources:
+        inputs:
+          - name: git-source
+            resource: kapi-git
+        outputs:
+          - name: builtImage
+            resource: kapi-image
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipelinerun-taskrunspec
+spec:
+  pipelineRef:
+    name: pipeline-build-and-push
+  serviceAccountName: docker-git            # 为此Pipeline指定全局ServiceAccount
+  PodTemplate:                              # 为此Pipeline指定全局PodTemplate
+    nodeSelector:
+      kubernetes.io/hostname: "k8s-node-1"
+  resources:
+    - name: sapi-git
+      resourceRef:
+        name: dart-hello-git-resource
+    - name: kapi-git
+      resourceRef:
+        name: dart-hello-git-resource
+    - name: sapi-image
+      resourceRef:
+        name: dart-hello-image-resource
+    - name: kapi-image
+      resourceRef:
+        name: dart-hello-image-resource
+  taskRunSpecs:                              # 指定PipelineTaskRunSpec列表
+  - pipelineTaskName: sapi                   # 指定Pipeline中特定的Task名称
+    taskServiceAccountName: docker-git-sa    # 为此PipelineTask配置局部ServiceAccount，覆盖全局serviceAccount
+    taskPodTemplate:                         # 为此PipelineTask配置局部PodTemplate，覆盖全局PodTemplate
+      nodeSelector:
+        kubernetes.io/hostname: "k8s-node-2"
+  - pipelineTaskName: kapi
+    taskServiceAccountName: build-and-push-sa
+    taskPodTemplate:
+      nodeSelector:
+        kubernetes.io/hostname: "k8s-node-3"

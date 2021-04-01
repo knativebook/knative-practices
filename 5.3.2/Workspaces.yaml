@@ -1,0 +1,68 @@
+# 需要提前在Kubernetes创建好PVC资源
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-km1
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "2Gi"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-km2
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "2Gi"
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-storage
+spec:
+  workspaces:
+    - name: km1
+      mountPath: /km1   
+    - name: km2
+      mountPath: /km2
+    - name: appconfig      # 指定挂载目录，默认挂载到/workspace/appconfig
+      mountPath: /config
+  steps:
+    - name: storage
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo $(workspaces.km1.path)
+        echo $(workspaces.km2.path)
+        echo $(workspaces.appconfig.path)
+        sleep 10m
+        # 脚本等待10分钟，我们可以进入Pod中查看（如无须查看可取消此项）。
+        # 也可以通过Dashboard或TaskRun结果信息查看其输出的结果。
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-storage
+spec:
+  serviceAccountName: docker-git-sa
+  workspaces:
+    - name: km1                # 必须与Task对象中相应的workspaces名称一致。
+      persistentVolumeClaim:
+        claimName: pvc-km1
+      subPath: mydata          # 把"子目录中的数据"直接挂载到Pod中的相应目录下。（如果子目录路径是/pvc-km1/mydata/，挂载时只会把mydata中的数据挂载到相应目录中，而不是mydata目录）。
+    - name: km2
+      persistentVolumeClaim:
+        claimName: pvc-km2     # 把已经存在的PVC资源，挂载到km2中。
+    - name: appconfig
+      configmap:
+        name: app-config       # 引用K8s集群中的ConfigMap资源，必须提前存在。   
+  taskRef:
+    name: task-storage
+    kind: Task

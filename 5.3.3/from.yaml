@@ -1,0 +1,91 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-build-to-push
+spec:
+  resources:
+    outputs:
+      - name: app-image-a
+        type: image
+  steps:
+    - name: print-1
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo `date "+%Y%m%d-%H:%M:%S"`
+        echo $(resources.outputs.app-image-a.url)
+    - name: print-2
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        sleep 5s
+        echo `date "+%Y%m%d-%H:%M:%S"`
+        echo $(resources.outputs.app-image-a.url)
+    - name: print-3
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        sleep 5s
+        echo `date "+%Y%m%d-%H:%M:%S"`
+        echo $(resources.outputs.app-image-a.url)
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-deploy
+spec:
+  resources:
+    inputs:
+      - name: app-image-b
+        type: image
+  steps:
+    - name: print-1
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo `date "+%Y%m%d-%H:%M:%S"`
+        echo $(resources.inputs.app-image-b.url)
+    - name: print-2
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        sleep 5s
+        echo `date "+%Y%m%d-%H:%M:%S"`
+        echo $(resources.inputs.app-image-b.url)
+    - name: print-3
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        sleep 5s
+        echo `date "+%Y%m%d-%H:%M:%S"`
+        echo $(resources.inputs.app-image-b.url)
+        
+---        
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: from-pipeline
+spec:
+  resources:
+    - name: builtImage                # 定义Pipeline所需的资源（通过执行PipelineRun传递PipelineResource给Pipeline）。
+      type: image
+  tasks:
+    - name: build-to-push
+      taskRef:
+        name: task-build-to-push      
+        kind: Task
+      resources:
+        outputs:                     # 定义输出资源
+          - name: app-image-a        # 必须与Task资源中定义的输出资源名称相同
+            resource: builtImage     # 引用Pipeline中的spec.resources（此Task中的输出资源必须与deploy中的输入资源名称相同）
+    - name: deploy
+      taskRef:
+        name: task-deploy
+        kind: Task
+      resources:
+        inputs:                      # 定义输如资源
+          - name: app-image-b        # 必须与Task资源中定义的输出资源名称相同
+            resource: builtImage     # 引用Pipeline中的spec.resources（此Task中的输入资源必须与build-to-push中的输出资源名称相同）
+            from:
+              - build-to-push        # 排序控制，表示只有build-to-push任务成功执行完成后deploy任务才会执行。

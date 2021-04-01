@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipeline-run-example
+spec:
+  pipelineRef:
+    name: pipeline-example
+  resources:                    # 设置Pipeline所需要的PipelineResource
+    - name: hello-git           # 此名称必须与Pipeline对象中定义的Resource名称相同
+      resourceSpec:             # 嵌入PipelineResource对象的配置
+        type: git
+        params:
+          - name: url
+            value: https://git.com/hello/hello.git
+          - name: revision
+            value: master
+    - name: hello-image         # 此名称必须与Pipeline对象中定义的Resource名称相同
+      resourceSpec:             # 嵌入PipelineResource对象的配置
+        type: image
+        params:
+          - name: url
+            value: example/hello:latest

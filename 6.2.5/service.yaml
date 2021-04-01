@@ -1,0 +1,19 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld-go  # Service名称
+  namespace: default
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/class: "kpa.autoscaling.knative.dev" 
+ # Autoscaler的实现方式,可选值有"kpa.autoscaling.knative.dev" 或 "hpa.autoscaling.knative.dev"
+        autoscaling.knative.dev/metric: "concurrency"  # 设置度量指标为concurrency（默认值），还可以根据业务情况选择rps或cpu。
+        autoscaling.knative.dev/target: "10"  # 设置单个Pod最大并发数为10，默认值为100。
+        autoscaling.knative.dev/minScale: "1" # minScale表示最小保留实例数为1
+        autoscaling.knative.dev/maxScale: "100" # maxScale表示最大扩容实例数为3
+    spec:
+      containerConcurrency: 10 # 并发请求数的硬性限制。
+      containers:
+      - image: cnlab/helloworld-go

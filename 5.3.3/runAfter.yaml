@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: runafter-pipeline
+spec:
+  resources:
+    - name: git-source    
+      type: git
+  tasks:
+    - name: build-to-push
+      taskRef:
+        name: build-and-push
+        kind: Task
+      resources:
+        inputs:
+          - name: workspace
+            resource: git-source
+    - name: deploy
+      taskRef:
+        name: deploy-app
+        kind: Task
+      runAfter:
+        - build-and-push          # 指定deploy任务必须在build-to-push任务之后执行
+      resources:
+        inputs:
+          - name: workspace
+            resource: git-source

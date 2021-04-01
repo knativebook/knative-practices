@@ -1,0 +1,29 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: ClusterTriggerBinding
+metadata:
+  name: pipeline-clusterbinding
+spec:
+  params:
+    - name: gitrevision
+      value: $(body.head_commit.id)
+    - name: gitrepositoryurl
+      value: $(body.repository.url)
+    - name: contenttype
+      value: $(header.Content-Type)
+
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: listener-clustertriggerbinding
+spec:
+  serviceAccountName: tekton-triggers-example-sa
+  triggers:
+    - name: foo-trig
+      bindings:
+        - ref: pipeline-clusterbinding
+          kind: ClusterTriggerBinding
+        - ref: message-clusterbinding
+          kind: ClusterTriggerBinding
+      template:
+        name: pipeline-template

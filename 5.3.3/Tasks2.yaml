@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+spec:
+  resources:
+    - name: git-source-p             # 定义Pipeline所需的资源（通过执行PipelineRun传递PipelineResource给Pipeline）。
+      type: git
+    - name: builtImage-p             # 定义Pipeline所需的资源（通过执行PipelineRun传递PipelineResource给Pipeline）。
+      type: image
+  tasks:
+    - name: build-to-push
+      resources:
+        inputs:
+          - name: git-source         # 必须与Task资源中定义的输入资源名称相同
+            resource: git-source-p   # 引用spec.resources中相应的资源名称
+        outputs:
+          - name: builtImage         # 必须与Task资源中定义的输出资源名称相同
+            resource: builtImage-p   # 引用spec.resources中相应的资源名称
+      taskRef:
+        name: build-and-push
+        kind: Task

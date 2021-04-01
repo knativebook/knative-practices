@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: kb-pipeline
+spec:
+  workspaces:
+    - name: filedata               # 定义Pipeline所需的Workspace资源（通过执行PipelineRun传递Workspaces给Pipeline）。
+  tasks:
+    - name: download
+      taskRef:
+        name: file-wget 
+      workspaces:
+        - name: datastore          # 此名称必须与Task资源中定义的Workspace名称相同，Task中必须声明此名称                     
+          workspace: filedata      # 引用spec.workspaces中相应的资源名称
+    - name: update
+      taskRef:
+        name: file-update
+      runAfter:                    # 排序控制，表示update任务必须在download任务后面执行，通过runAfter关联两个任务的执行顺序
+        - download  
+      workspaces:
+        - name: digital            # 此名称必须与Task资源中定义的Workspace名称相同，Task中必须声明此名称 
+          workspace: filedata      # 引用spec.workspaces中相应的资源名称
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: kb-run
+spec:
+  pipelineRef:
+    name: kb-pipeline
+  workspaces:
+    - name: filedata               # 此名称必须与Pipeline资源中定义的Workspace名称相同，Pipeline中必须声明此名称 
+      volumeClaimTemplate:         # 定义VolumeSource，基于支持的PersistentVolumeClaim类型
+        spec:
+          accessModes:
+            - ReadWriteMany        # 该Volume可被多个节点以读写方式映射
+          resources:
+            requests:
+              storage: 5Gi

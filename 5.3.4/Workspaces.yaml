@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-km1
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "2Gi"
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-storage
+spec:
+  workspaces:
+    - name: filedata 
+      mountPath: /filedata
+    - name: appconfig              
+      mountPath: /config     # 指定挂载目录，默认挂载到/workspace/appconfig 
+  steps:
+    - name: storage
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo $(workspaces.filedata.path)
+        echo $(workspaces.appconfig.path)
+        # 可以通过Dashboard或PipelineRun结果信息查看其输出的结果。
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-workspace
+spec:
+  workspaces:
+    - name: km1
+    - name: app-config
+  tasks:
+    - name: mount-workspace
+      taskRef:
+        name: task-storage   
+      workspaces:
+        - name: filedata
+          workspace: km1
+        - name: appconfig
+          workspace: app-config
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipeline-run-workspace
+spec:
+  pipelineRef:
+    name: pipeline-workspace
+  workspaces:
+    - name: km1               # 必须与Pipeline对象中相应的workspaces名称一致。
+      persistentVolumeClaim:  
+        claimName: pvc-km1    # 把已经存在的PVC资源，挂载到km1中。
+      subPath: mydata         # 把"子目录中的数据"直接挂载到Pod中的相应目录下。（如果子目录路径是/pvc-km1/mydata/，挂载时只会把mydata中的数据挂载到相应目录中，而不是mydata目录）
+    - name: app-config
+      configmap:
+        name: app-config      # 引用K8s集群中的ConfigMap资源，必须提前存在。

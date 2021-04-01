@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: runafter-pipeline
+spec:
+  resources:
+    - name: git-source    
+      type: git
+  tasks:
+    - name: build-to-push
+      retries: 1                  # 指定build-to-push任务失败后，重试执行的次数 
+      taskRef:
+        name: build-and-push
+        kind: Task

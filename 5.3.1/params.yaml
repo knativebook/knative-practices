@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-parameters
+spec:
+  params:
+    - name: ls
+      type: array
+  steps:
+    - name: print
+      image: bash:latest
+      command: ["ls","$(params.ls[*])","/bin"]     
+      # "$(params.ls[*])"必须独立引用。如："$(params.ls[*]) /bin"会显示语法错误。
+  
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: run-parameters
+spec:
+  taskRef:
+    name: task-parameters
+  params:
+    - name: ls
+      value:       # 向array类型的参数中传递多个值。
+        - "-l"
+        - "-a"
+        - "/tekton/" 
