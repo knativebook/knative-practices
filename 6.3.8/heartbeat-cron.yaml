@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: heartbeat-cron
+  labels:
+    app: heartbeat-cron
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: single-heartbeat
+        image: cnlab/heartbeats-007104604b758f52b70a5535e662802b 
+        args:
+          - --period=1
+        env:
+          - name: ONE_SHOT
+            value: "true"
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
